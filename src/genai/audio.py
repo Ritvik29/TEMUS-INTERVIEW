@@ -9,7 +9,10 @@ import os
 import tempfile
 from pathlib import Path
 
+from dotenv import load_dotenv
 from groq import Groq
+
+load_dotenv()
 
 WHISPER_MODEL = "whisper-large-v3"
 SUPPORTED_AUDIO = {".mp3", ".mp4", ".mpeg", ".mpga", ".m4a", ".wav", ".webm", ".ogg", ".flac"}

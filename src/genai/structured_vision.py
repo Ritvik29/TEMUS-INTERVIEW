@@ -12,7 +12,10 @@ import json
 import os
 import re
 
+from dotenv import load_dotenv
 import numpy as np
+
+load_dotenv()
 import pandas as pd
 from groq import Groq
 

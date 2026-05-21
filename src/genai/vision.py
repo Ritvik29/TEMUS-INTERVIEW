@@ -14,8 +14,11 @@ import io
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
 from PIL import Image
 from groq import Groq
+
+load_dotenv()
 
 VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 MAX_SIDE_PX = 1568      # Groq recommended max dimension
