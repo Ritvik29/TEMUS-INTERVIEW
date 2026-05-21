@@ -5,12 +5,11 @@ Run with: .venv/bin/streamlit run app.py
 import asyncio
 import os
 import tempfile
+import concurrent.futures
 
-import nest_asyncio
 import streamlit as st
 from dotenv import load_dotenv
 
-nest_asyncio.apply()
 load_dotenv()
 
 st.set_page_config(
@@ -64,11 +63,14 @@ def get_guardrails():
 
 
 # ---------------------------------------------------------------------------
-# Helper: run async in Streamlit
+# Helper: run async coroutines from Streamlit's uvloop context
+# We spin up a fresh thread with its own plain asyncio event loop to avoid
+# the uvloop patching issue.
 # ---------------------------------------------------------------------------
 def run_async(coro):
-    loop = asyncio.get_event_loop()
-    return loop.run_until_complete(coro)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(asyncio.run, coro)
+        return future.result()
 
 
 # ===========================================================================
@@ -111,19 +113,21 @@ def page_chat():
         with st.chat_message("assistant"):
             placeholder = st.empty()
             full_response = ""
+
             async def stream():
                 nonlocal full_response
+                final = None
                 async for event in graph.astream_events(state, version="v2"):
                     if event["event"] == "on_chat_model_stream":
                         chunk = event["data"]["chunk"].content
                         if chunk:
                             full_response += chunk
-                            placeholder.markdown(full_response + "▌")
                     elif event["event"] == "on_chain_end" and event["name"] == "LangGraph":
-                        return event["data"]["output"]
-                return None
+                        final = event["data"]["output"]
+                return full_response, final
 
-            result = run_async(stream())
+            resp_text, result = run_async(stream())
+            full_response = resp_text
             placeholder.markdown(full_response)
 
         if result:
